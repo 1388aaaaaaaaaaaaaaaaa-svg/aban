@@ -1,0 +1,80 @@
+name: Build APK (Flutter)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create a fresh Android project
+        run: |
+          rm -rf android
+          flutter create --platforms=android --org ir.aban --project-name aban_as .
+
+      - name: Raise compileSdk for the app and plugins
+        run: |
+          cat > fix_android.py <<'PY'
+          import os
+          import re
+
+          APP = 'android/app/build.gradle.kts'
+          ROOT = 'android/build.gradle.kts'
+
+          if os.path.exists(APP):
+              s = open(APP, encoding='utf-8').read()
+              s = re.sub(r'compileSdk\s*=\s*[^\n]+', 'compileSdk = 36', s)
+              open(APP, 'w', encoding='utf-8').write(s)
+              print('app compileSdk set to 36')
+
+          if os.path.exists(ROOT):
+              s = open(ROOT, encoding='utf-8').read()
+              block = (
+                  "\nsubprojects {\n"
+                  "    if (name != \"app\") {\n"
+                  "        afterEvaluate {\n"
+                  "            extensions.findByName(\"android\")?.let {\n"
+                  "                (it as com.android.build.gradle.BaseExtension).compileSdkVersion(36)\n"
+                  "            }\n"
+                  "        }\n"
+                  "    }\n"
+                  "}\n"
+              )
+              open(ROOT, 'w', encoding='utf-8').write(s + block)
+              print('plugins compileSdk set to 36')
+          PY
+          python3 fix_android.py
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Generate app icons and splash
+        run: |
+          dart run flutter_launcher_icons
+          dart run flutter_native_splash:create
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aban-as-flutter-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
