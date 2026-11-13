@@ -25,15 +25,7 @@ class _MessagesTabState extends State<MessagesTab> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-          child: SegmentedButton<int>(
-            segments: const [
-              ButtonSegment(value: 0, label: Text('گروه')),
-              ButtonSegment(value: 1, label: Text('به ساکنین')),
-              ButtonSegment(value: 2, label: Text('پشتیبانی')),
-            ],
-            selected: {_view},
-            onSelectionChanged: (s) => setState(() => _view = s.first),
-          ),
+          child: PillTabs(labels: const ['گروه', 'به ساکنین', 'پشتیبانی'], selected: _view, onChanged: (i) => setState(() => _view = i),),
         ),
         Expanded(
           child: IndexedStack(

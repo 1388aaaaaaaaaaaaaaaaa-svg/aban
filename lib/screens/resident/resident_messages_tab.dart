@@ -4,6 +4,7 @@ import '../../api.dart';
 import '../../input.dart';
 import '../../state.dart';
 import '../../theme.dart';
+import '../../widgets.dart';
 import '../chat/chat_thread.dart';
 
 /// Resident messages: group, direct message to the manager, and support.
@@ -36,15 +37,7 @@ class _ResidentMessagesTabState extends State<ResidentMessagesTab> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-          child: SegmentedButton<int>(
-            segments: const [
-              ButtonSegment(value: 0, label: Text('گروه ساختمان')),
-              ButtonSegment(value: 1, label: Text('مدیر')),
-              ButtonSegment(value: 2, label: Text('پشتیبانی')),
-            ],
-            selected: {_view},
-            onSelectionChanged: (s) => setState(() => _view = s.first),
-          ),
+          child: PillTabs(labels: const ['گروه ساختمان', 'مدیر', 'پشتیبانی'], selected: _view, onChanged: (i) => setState(() => _view = i),),
         ),
         Expanded(
           child: IndexedStack(

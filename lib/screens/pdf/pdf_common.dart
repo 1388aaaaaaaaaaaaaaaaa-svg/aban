@@ -88,7 +88,7 @@ pw.Widget pdfBox(String label, String value, {bool dark = false}) {
 pw.Widget pdfLine(String label, String value) {
   return pw.Padding(
     padding: const pw.EdgeInsets.symmetric(vertical: 2),
-    child: pw.Row(
+    child: pw.Row(textDirection: pw.TextDirection.rtl, 
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
         pw.Text(label, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),

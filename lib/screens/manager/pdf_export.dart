@@ -75,7 +75,7 @@ Future<void> printPeriodTable({
         ),
       ),
       pw.SizedBox(height: 12),
-      pw.Row(
+      pw.Row(textDirection: pw.TextDirection.rtl, 
         children: [
           _box('تعداد واحد', toFa('${rows.length}')),
           _box('جمع قبض‌ها', fmtMoney(total)),
@@ -85,8 +85,8 @@ Future<void> printPeriodTable({
       ),
       pw.SizedBox(height: 12),
       pw.Table.fromTextArray(
-        headers: ['#', 'واحد', 'نام ساکن', 'مبلغ قبض', 'پرداختی', 'وضعیت'],
-        data: data,
+        headers: ['#', 'واحد', 'نام ساکن', 'مبلغ قبض', 'پرداختی', 'وضعیت'].reversed.toList(),
+        data: data.map((r) => r.reversed.toList()).toList(),
         headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10),
         headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF14213D)),
         cellStyle: const pw.TextStyle(fontSize: 9),

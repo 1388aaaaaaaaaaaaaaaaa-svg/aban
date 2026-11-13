@@ -143,30 +143,76 @@ class _ResidentHomeState extends State<ResidentHome> {
   }
 
   Widget _billCard(BillRow b, {bool highlight = false}) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(b.periodTitle, style: TextStyle(fontWeight: FontWeight.w700, fontSize: highlight ? 17 : 15))),
-              StatusChip(paid: b.isPaid),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _line('مبلغ قبض', fmtMoney(b.amountDue)),
-          _line('پرداختی', fmtMoney(b.paidAmount)),
-          _line('مانده', fmtMoney(b.balance)),
-          _line('مهلت پرداخت', fmtJalali(b.dueDate)),
-          if (b.verificationCode != null) _line('کد تأیید', b.verificationCode!),
-        ],
+    final color = b.isPaid ? AppColors.green : AppColors.red;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Container(width: 5, color: color),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(b.periodTitle,
+                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: highlight ? 17 : 15)),
+                        ),
+                        StatusChip(paid: b.isPaid),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _mini('مبلغ قبض', fmtMoney(b.amountDue)),
+                        _mini('مانده', fmtMoney(b.balance)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _line('پرداختی', fmtMoney(b.paidAmount)),
+                    _line('مهلت پرداخت', fmtJalali(b.dueDate)),
+                    if (b.verificationCode != null) _line('کد تأیید', b.verificationCode!),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _mini(String label, String value) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.only(left: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(color: AppColors.blueLight, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.blue)),
+          ],
+        ),
       ),
     );
   }
 
   Widget _line(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 13)),

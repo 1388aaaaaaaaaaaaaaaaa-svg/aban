@@ -309,160 +309,173 @@ class _PeriodTabState extends State<PeriodTab> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
       children: [
-        const Text('قبض جدید', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        const Text('صدور قبض', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.text)),
+        const SizedBox(height: 2),
+        Text('${fmtNum(_fields.length)} واحد · دوره را وارد کنید و کنتورها را بنویسید',
+            style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+        const SizedBox(height: 16),
+        _section('اطلاعات دوره', [
+          _tf(_title, 'عنوان دوره', hint: 'مثلاً آبان ۱۴۰۵'),
+          _tf(_limit, 'حد مجاز مصرف (متر مکعب)', number: true),
+          Row(
             children: [
-              _tf(_title, 'عنوان دوره', hint: 'مثلاً آبان ۱۴۰۵'),
-              _tf(_limit, 'حد مجاز مصرف این دوره (متر مکعب)', number: true),
-              const Text('مهلت پرداخت (شمسی)', style: TextStyle(color: AppColors.muted, fontSize: 13)),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Expanded(child: _tf(_dueDay, 'روز', number: true)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<int>(
-                      value: _dueMonth,
-                      decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-                      items: List.generate(
-                        12,
-                        (i) => DropdownMenuItem(value: i + 1, child: Text(jMonths[i])),
-                      ),
-                      onChanged: (v) => setState(() => _dueMonth = v ?? 1),
-                    ),
+              Expanded(child: _tf(_dueDay, 'روز', number: true)),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DropdownButtonFormField<int>(
+                    value: _dueMonth,
+                    decoration: _deco('ماه'),
+                    items: List.generate(12, (i) => DropdownMenuItem(value: i + 1, child: Text(jMonths[i]))),
+                    onChanged: (v) => setState(() => _dueMonth = v ?? 1),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(child: _tf(_dueYear, 'سال', number: true)),
-                ],
+                ),
               ),
-              const SizedBox(height: 10),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'split', label: Text('تقسیم مبلغ کل')),
-                  ButtonSegment(value: 'rate', label: Text('نرخ هر متر مکعب')),
-                ],
-                selected: {_mode},
-                onSelectionChanged: (s) => setState(() => _mode = s.first),
-              ),
-              const SizedBox(height: 10),
-              if (_mode == 'split')
-                _tf(_amount, 'مبلغ کل قبض اصلی (تومان، شامل آبونمان)', number: true)
-              else
-                _tf(_rate, 'نرخ هر متر مکعب تعدیل‌شده (تومان)', number: true),
-              _tf(_abon, 'آبونمان (تومان)', number: true),
-              DropdownButtonFormField<String>(
-                value: _abonMode,
-                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, labelText: 'نوع آبونمان'),
-                items: const [
-                  DropdownMenuItem(value: 'total', child: Text('آبونمان کل ساختمان، تقسیم مساوی')),
-                  DropdownMenuItem(value: 'unit', child: Text('آبونمان ثابت برای هر واحد')),
-                ],
-                onChanged: (v) => setState(() => _abonMode = v ?? 'total'),
-              ),
+              const SizedBox(width: 8),
+              Expanded(child: _tf(_dueYear, 'سال', number: true)),
             ],
           ),
-        ),
-        const SizedBox(height: 12),
-        AppCard(
-          child: Row(
+        ]),
+        _section('محاسبه', [
+          PillTabs(
+            labels: const ['تقسیم مبلغ کل', 'نرخ هر متر مکعب'],
+            selected: _mode == 'split' ? 0 : 1,
+            onChanged: (i) => setState(() => _mode = i == 0 ? 'split' : 'rate'),
+          ),
+          const SizedBox(height: 12),
+          if (_mode == 'split')
+            _tf(_amount, 'مبلغ کل قبض اصلی (تومان)', number: true)
+          else
+            _tf(_rate, 'نرخ هر متر مکعب (تومان)', number: true),
+          _tf(_abon, 'آبونمان (تومان)', number: true),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: DropdownButtonFormField<String>(
+              value: _abonMode,
+              decoration: _deco('نوع آبونمان'),
+              items: const [
+                DropdownMenuItem(value: 'total', child: Text('کل ساختمان، تقسیم مساوی')),
+                DropdownMenuItem(value: 'unit', child: Text('ثابت برای هر واحد')),
+              ],
+              onChanged: (v) => setState(() => _abonMode = v ?? 'total'),
+            ),
+          ),
+        ]),
+        _section('کنتورها', [
+          Row(
             children: [
-              const Icon(Icons.table_view, color: AppColors.blue),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text('کنتورها را از فایل اکسل وارد کنید (ستون «واحد» و ستون عدد کنتور فعلی)',
-                    style: TextStyle(fontSize: 13)),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: AppColors.blueLight, borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.table_chart_outlined, color: AppColors.blue),
               ),
-              OutlinedButton(onPressed: _importExcel, child: const Text('اکسل')),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('کنتورها را از فایل اکسل وارد کنید',
+                    style: TextStyle(fontSize: 13, color: AppColors.muted)),
+              ),
+              TextButton(onPressed: _importExcel, child: const Text('اکسل')),
             ],
           ),
-        ),
-        const SizedBox(height: 14),
-        const Text('کنتور هر واحد', style: TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        ..._fields.map(_unitRow),
+          const SizedBox(height: 8),
+          ..._fields.map(_unitRow),
+        ]),
         if (_formError != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(_formError!, style: const TextStyle(color: AppColors.red)),
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Text(_formError!, style: const TextStyle(color: AppColors.red, fontSize: 13)),
           ),
-        const SizedBox(height: 12),
-        FilledButton(
-          onPressed: _busy ? null : _doPreview,
-          style: FilledButton.styleFrom(backgroundColor: AppColors.blue, padding: const EdgeInsets.all(14)),
-          child: const Text('محاسبه و پیش‌نمایش'),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 50,
+          child: OutlinedButton(
+            onPressed: _busy ? null : _doPreview,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.blue,
+              side: const BorderSide(color: AppColors.blue2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Text('محاسبه و پیش‌نمایش', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
         ),
         if (_preview != null) ...[
           const SizedBox(height: 14),
           _previewCard(_preview!),
-          const SizedBox(height: 10),
-          FilledButton(
-            onPressed: _busy ? null : _publish,
-            style: FilledButton.styleFrom(backgroundColor: AppColors.green, padding: const EdgeInsets.all(14)),
-            child: Text(_busy ? 'در حال انتشار…' : 'تأیید و انتشار قبض‌ها'),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 52,
+            child: FilledButton(
+              onPressed: _busy ? null : _publish,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: Text(_busy ? 'در حال انتشار…' : 'انتشار قبض‌ها',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            ),
           ),
         ],
       ],
     );
   }
 
-  Widget _unitRow(_UnitField f) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: AppCard(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('واحد ${f.unit.label} — ${f.unit.residentName}',
-                style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                if (f.prevVisible) ...[
-                  Expanded(child: _tf(f.prev, 'عدد قبلی (اولین قبض)', number: true)),
-                  const SizedBox(width: 8),
-                ],
-                Expanded(child: _tf(f.cur, 'عدد فعلی کنتور', number: true)),
-                const SizedBox(width: 8),
-                Expanded(child: _tf(f.penalty, 'جریمه', number: true)),
-              ],
-            ),
-          ],
-        ),
+  Widget _section(String title, List<Widget> children) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
+          const SizedBox(height: 12),
+          ...children,
+        ],
       ),
     );
   }
 
-  Widget _previewCard(CalcResult r) {
-    return AppCard(
+  Widget _unitRow(_UnitField f) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(16)),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('پیش‌نمایش: ${r.title}', style: const TextStyle(fontWeight: FontWeight.w800)),
-          Text('حد مجاز این دوره: ${fmtNum(r.limit)} متر مکعب',
-              style: const TextStyle(color: AppColors.muted, fontSize: 12)),
-          const Divider(),
-          ...r.rows.map((x) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(
-                  children: [
-                    SizedBox(width: 60, child: Text('واحد ${x.label}', style: const TextStyle(fontSize: 12))),
-                    Text('مصرف ${fmtNum(x.cons)}', style: const TextStyle(fontSize: 12)),
-                    const Spacer(),
-                    Text(fmtMoney(x.amount), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              )),
-          const Divider(),
           Row(
             children: [
-              const Text('جمع قبض‌ها'),
-              const Spacer(),
-              Text(fmtMoney(r.total + r.penaltyTotal), style: const TextStyle(fontWeight: FontWeight.w800)),
+              CircleAvatar(
+                radius: 15,
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.blue,
+                child: Text(f.unit.label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(f.unit.residentName.isEmpty ? 'بدون نام' : f.unit.residentName,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (f.prevVisible) ...[
+                Expanded(child: _tf(f.prev, 'عدد قبلی', number: true)),
+                const SizedBox(width: 8),
+              ],
+              Expanded(child: _tf(f.cur, 'عدد فعلی', number: true)),
+              const SizedBox(width: 8),
+              Expanded(child: _tf(f.penalty, 'جریمه', number: true)),
             ],
           ),
         ],
@@ -470,13 +483,68 @@ class _PeriodTabState extends State<PeriodTab> {
     );
   }
 
+  Widget _previewCard(CalcResult r) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.blueLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(r.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          Text('حد مجاز: ${fmtNum(r.limit)} متر مکعب', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+          const SizedBox(height: 10),
+          ...r.rows.map((x) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Text('واحد ${x.label}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    Text('مصرف ${fmtNum(x.cons)}', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                    const Spacer(),
+                    Text(fmtMoney(x.amount), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              )),
+          const Divider(height: 22),
+          Row(
+            children: [
+              const Text('جمع قبض‌ها', style: TextStyle(fontWeight: FontWeight.w700)),
+              const Spacer(),
+              Text(fmtMoney(r.total + r.penaltyTotal),
+                  style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.blue, fontSize: 16)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _deco(String label, {String? hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.blueLight)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.blueLight)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.blue2, width: 1.5)),
+    );
+  }
+
   Widget _tf(TextEditingController c, String label, {String? hint, bool number = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: c,
         keyboardType: number ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-        decoration: InputDecoration(labelText: label, hintText: hint, border: const OutlineInputBorder(), isDense: true),
+        decoration: _deco(label, hint: hint),
       ),
     );
   }

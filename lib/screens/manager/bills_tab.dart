@@ -108,7 +108,7 @@ class _PeriodDetailPageState extends State<PeriodDetailPage> {
   Map<String, Map<String, dynamic>> _seen = {};
   bool _loading = true;
   String? _error;
-  bool _onlyUnpaid = true;
+  int _filter = 1; // 0 all, 1 unpaid, 2 paid
 
   @override
   void initState() {
@@ -145,8 +145,9 @@ class _PeriodDetailPageState extends State<PeriodDetailPage> {
 
   bool _isPaid(Map<String, dynamic> r) => r['payment_status'] == 'paid';
 
-  List<Map<String, dynamic>> get _shown =>
-      _rows.where((r) => _onlyUnpaid ? !_isPaid(r) : _isPaid(r)).toList();
+  List<Map<String, dynamic>> get _shown => _rows
+      .where((r) => _filter == 0 ? true : (_filter == 1 ? !_isPaid(r) : _isPaid(r)))
+      .toList();
 
   Future<void> _togglePaid(Map<String, dynamic> r) async {
     final paid = _isPaid(r);
@@ -163,8 +164,33 @@ class _PeriodDetailPageState extends State<PeriodDetailPage> {
     }
   }
 
+  Future<void> _deletePeriod() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف قبض'),
+        content: const Text('قبض این دوره حذف شود؟ کنتور هر واحد به عدد قبل از این قبض برمی‌گردد.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('انصراف')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await rpc('manager_delete_period', {'p_token': appState.managerToken, 'p_period': widget.periodId});
+      if (mounted) Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   Future<void> _pdf() async {
-    final filter = _onlyUnpaid ? 'فقط پرداخت‌نشده' : 'فقط پرداخت‌شده';
+    final filter = _filter == 0 ? 'همه واحدها' : (_filter == 1 ? 'فقط پرداخت‌نشده' : 'فقط پرداخت‌شده');
     try {
       await printPeriodTable(
         buildingName: appState.managerBuildingName ?? '',
@@ -192,7 +218,10 @@ class _PeriodDetailPageState extends State<PeriodDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: [IconButton(onPressed: _pdf, icon: const Icon(Icons.picture_as_pdf_outlined), tooltip: 'PDF')],
+        actions: [
+          IconButton(onPressed: _pdf, icon: const Icon(Icons.picture_as_pdf_outlined), tooltip: 'PDF'),
+          IconButton(onPressed: _deletePeriod, icon: const Icon(Icons.delete_outline, color: AppColors.red), tooltip: 'حذف قبض'),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -221,14 +250,7 @@ class _PeriodDetailPageState extends State<PeriodDetailPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment(value: true, label: Text('پرداخت نشده')),
-                          ButtonSegment(value: false, label: Text('پرداخت شده')),
-                        ],
-                        selected: {_onlyUnpaid},
-                        onSelectionChanged: (s) => setState(() => _onlyUnpaid = s.first),
-                      ),
+                      PillTabs(labels: const ['پرداخت نشده', 'پرداخت شده', 'همه'], selected: _filter == 1 ? 0 : (_filter == 2 ? 1 : 2), onChanged: (i) => setState(() => _filter = i == 0 ? 1 : (i == 1 ? 2 : 0)),),
                       const SizedBox(height: 12),
                       if (_shown.isEmpty) const EmptyState(text: 'موردی نیست'),
                       ..._shown.map(_row),

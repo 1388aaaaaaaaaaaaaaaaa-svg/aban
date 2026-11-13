@@ -1,4 +1,3 @@
-import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../format.dart';
@@ -30,15 +29,15 @@ Future<void> printUnitHistoryPdf({
   await printA4Page([
     pdfHeader('سابقهٔ حساب واحد', 'واحد $unitLabel — $residentName', buildingName),
     pw.SizedBox(height: 10),
-    pw.Row(children: [
+    pw.Row(textDirection: pw.TextDirection.rtl, children: [
       pdfBox('تعداد قبض‌ها', fmtNum(rows.length)),
       pdfBox('پرداخت نشده', fmtNum(unpaid)),
       pdfBox('مجموع بدهی', fmtMoney(debt), dark: true),
     ]),
     pw.SizedBox(height: 12),
     pw.Table.fromTextArray(
-      headers: ['دوره', 'مبلغ قبض', 'پرداختی', 'مانده', 'وضعیت'],
-      data: data,
+      headers: ['دوره', 'مبلغ قبض', 'پرداختی', 'مانده', 'وضعیت'].reversed.toList(),
+      data: data.map((r) => r.reversed.toList()).toList(),
       headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 9),
       headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF14213D)),
       cellStyle: const pw.TextStyle(fontSize: 9),
