@@ -88,7 +88,7 @@ pw.Widget pdfBox(String label, String value, {bool dark = false}) {
 pw.Widget pdfLine(String label, String value) {
   return pw.Padding(
     padding: const pw.EdgeInsets.symmetric(vertical: 2),
-    child: pw.Row(textDirection: pw.TextDirection.rtl, 
+    child: pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
         pw.Text(label, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
@@ -106,4 +106,9 @@ pw.Widget pdfFooter() {
           style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
     ),
   );
+}
+
+/// A row whose first child is placed on the right (right-to-left reading order).
+pw.Widget rtlRow(List<pw.Widget> children) {
+  return pw.Row(children: children.reversed.toList());
 }

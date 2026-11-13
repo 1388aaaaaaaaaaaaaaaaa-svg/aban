@@ -1,3 +1,4 @@
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../format.dart';
@@ -29,7 +30,7 @@ Future<void> printUnitHistoryPdf({
   await printA4Page([
     pdfHeader('سابقهٔ حساب واحد', 'واحد $unitLabel — $residentName', buildingName),
     pw.SizedBox(height: 10),
-    pw.Row(textDirection: pw.TextDirection.rtl, children: [
+    rtlRow([
       pdfBox('تعداد قبض‌ها', fmtNum(rows.length)),
       pdfBox('پرداخت نشده', fmtNum(unpaid)),
       pdfBox('مجموع بدهی', fmtMoney(debt), dark: true),

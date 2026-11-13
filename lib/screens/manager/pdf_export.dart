@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../format.dart';
+import '../pdf/pdf_common.dart';
 
 const _fontUrl =
     'https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Regular.ttf';
@@ -75,8 +76,8 @@ Future<void> printPeriodTable({
         ),
       ),
       pw.SizedBox(height: 12),
-      pw.Row(textDirection: pw.TextDirection.rtl, 
-        children: [
+      rtlRow(
+        [
           _box('تعداد واحد', toFa('${rows.length}')),
           _box('جمع قبض‌ها', fmtMoney(total)),
           _box('جمع پرداختی', fmtMoney(paid)),

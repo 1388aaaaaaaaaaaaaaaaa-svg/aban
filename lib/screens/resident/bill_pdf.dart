@@ -39,7 +39,7 @@ pw.Widget _row(String label, String value, {bool last = false, bool bold = false
     decoration: pw.BoxDecoration(
       border: last ? null : pw.Border(bottom: pw.BorderSide(color: _blueSoft, width: 1)),
     ),
-    child: pw.Row(textDirection: pw.TextDirection.rtl, 
+    child: pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
         pw.Text(label, style: const pw.TextStyle(fontSize: 10, color: _muted)),
@@ -153,19 +153,19 @@ Future<void> printResidentBill() async {
     ),
     pw.SizedBox(height: 10),
     // info grid
-    pw.Row(textDirection: pw.TextDirection.rtl, children: [
+    rtlRow([
       _cell('نام ساکن', (b['resident_name'] ?? '—').toString()),
       _cell('شماره واحد', (b['unit_label'] ?? '').toString()),
       _cell('دوره صورتحساب', (b['period_title'] ?? '').toString()),
     ]),
-    pw.Row(textDirection: pw.TextDirection.rtl, children: [
+    rtlRow([
       _cell('تاریخ صدور', b['published_at'] == null ? '—' : fmtJalali(b['published_at'].toString())),
       _cell('مهلت پرداخت', fmtJalali(b['due_date']?.toString())),
       _cell('کد تأیید قبض', (b['verification_code'] ?? '—').toString()),
     ]),
     pw.SizedBox(height: 6),
     // readings
-    pw.Row(textDirection: pw.TextDirection.rtl, children: [
+    rtlRow([
       _cell('قرائت قبلی', fmtNum((b['prev_reading'] ?? 0) as num)),
       _cell('قرائت فعلی', fmtNum((b['cur_reading'] ?? 0) as num)),
       _cell('مصرف', '${fmtNum((b['consumption'] ?? 0) as num)} م³', bg: _blue, fg: _white, labelColor: _blueSoft),
@@ -187,14 +187,14 @@ Future<void> printResidentBill() async {
     ),
     pw.SizedBox(height: 10),
     // debt boxes
-    pw.Row(textDirection: pw.TextDirection.rtl, children: [
+    rtlRow([
       _cell('بدهی دوره‌های قبل', fmtMoney(prevDebt), bg: _greenSoft, fg: _greenDeep, labelColor: const PdfColor.fromInt(0xFF0F6E56)),
       _cell('مبلغ این دوره', fmtMoney(amount)),
       _cell('مجموع بدهی', fmtMoney(totalDebt), bg: _blueDeep, fg: _white, labelColor: _blueSoft),
     ]),
     pw.SizedBox(height: 10),
     // bank card and text
-    pw.Row(textDirection: pw.TextDirection.rtl, crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
+    pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
       pw.Container(
         width: 250,
         height: 150,
@@ -234,7 +234,7 @@ Future<void> printResidentBill() async {
     pw.Container(
       padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 14),
       decoration: pw.BoxDecoration(color: _blue, borderRadius: pw.BorderRadius.circular(12)),
-      child: pw.Row(textDirection: pw.TextDirection.rtl, 
+      child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text('کد پیگیری: ${b['verification_code'] ?? '—'}', style: const pw.TextStyle(color: _white, fontSize: 9)),
