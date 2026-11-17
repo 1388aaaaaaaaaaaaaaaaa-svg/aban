@@ -29,7 +29,7 @@ jobs:
           rm -rf android
           flutter create --platforms=android --org ir.aban --project-name aban_as .
 
-      - name: Raise compileSdk for the app and plugins
+      - name: Raise compileSdk and allow internet in release
         run: |
           cat > fix_android.py <<'PY'
           import os
@@ -37,6 +37,7 @@ jobs:
 
           APP = 'android/app/build.gradle.kts'
           ROOT = 'android/build.gradle.kts'
+          MANIFEST = 'android/app/src/main/AndroidManifest.xml'
 
           if os.path.exists(APP):
               s = open(APP, encoding='utf-8').read()
@@ -59,6 +60,15 @@ jobs:
               )
               open(ROOT, 'w', encoding='utf-8').write(s + block)
               print('plugins compileSdk set to 36')
+
+          if os.path.exists(MANIFEST):
+              s = open(MANIFEST, encoding='utf-8').read()
+              if 'android.permission.INTERNET' not in s:
+                  s = re.sub(r'(<manifest[^>]*>)',
+                             r'\1\n    <uses-permission android:name="android.permission.INTERNET" />',
+                             s, count=1)
+                  open(MANIFEST, 'w', encoding='utf-8').write(s)
+                  print('INTERNET permission added')
           PY
           python3 fix_android.py
 
@@ -70,11 +80,11 @@ jobs:
           dart run flutter_launcher_icons
           dart run flutter_native_splash:create
 
-      - name: Build debug APK
-        run: flutter build apk --debug
+      - name: Build release APKs (one per phone type)
+        run: flutter build apk --release --split-per-abi
 
-      - name: Upload APK
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: aban-as-flutter-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: aban-as-apk
+          path: build/app/outputs/flutter-apk/*.apk
