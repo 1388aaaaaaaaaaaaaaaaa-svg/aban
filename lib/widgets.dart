@@ -1,51 +1,34 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'theme.dart';
 
-/// Card with a soft aqua gradient and a water bubble in the corner (no plain white).
+/// Flat sheet: a mist surface with one hairline. No shadow, no gradient wash.
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
-  const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(16)});
+  final double radius;
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.radius = 12,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      padding: padding,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [AppColors.foam, AppColors.aqua],
-        ),
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.foam,
+        borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: AppColors.aqua2),
-        boxShadow: const [BoxShadow(color: Color(0x1A1F6FD1), blurRadius: 14, offset: Offset(0, 6))],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Stack(
-          children: [
-            const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _CornerBubble()))),
-            Padding(padding: padding, child: child),
-          ],
-        ),
-      ),
+      child: child,
     );
   }
-}
-
-class _CornerBubble extends CustomPainter {
-  const _CornerBubble();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawCircle(Offset(size.width - 6, 6), 34, Paint()..color = const Color(0x1A3AA0F0));
-    canvas.drawCircle(Offset(size.width - 24, 26), 9, Paint()..color = const Color(0x2238BDF8));
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class StatusChip extends StatelessWidget {
@@ -54,19 +37,16 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = paid ? AppColors.green : AppColors.red;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: paid ? AppColors.greenSoft : AppColors.redSoft,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         paid ? 'پرداخت شده' : 'پرداخت نشده',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: paid ? AppColors.green : AppColors.red,
-        ),
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
       ),
     );
   }
@@ -80,8 +60,12 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(text, style: const TextStyle(color: AppColors.muted), textAlign: TextAlign.center),
+        padding: const EdgeInsets.all(28),
+        child: Text(
+          text,
+          style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.7),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
@@ -101,7 +85,7 @@ class ComingSoon extends StatelessWidget {
   }
 }
 
-/// Bank card design: blue gradient, chip, number, holder.
+/// Bank card: ink surface, amber chip, number on the left as in a real card.
 class BankCardView extends StatelessWidget {
   final String bankName;
   final String holder;
@@ -118,15 +102,10 @@ class BankCardView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1F6FD1), Color(0xFF0B3B7A)],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 14, offset: Offset(0, 8))],
+        color: AppColors.ink,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,30 +113,30 @@ class BankCardView extends StatelessWidget {
           Row(
             children: [
               Text(bankName.isEmpty ? 'بانک' : bankName,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
               const Spacer(),
               Container(
-                width: 38,
-                height: 28,
-                decoration: BoxDecoration(color: const Color(0xFFB5D4F4), borderRadius: BorderRadius.circular(6)),
+                width: 34,
+                height: 24,
+                decoration: BoxDecoration(color: AppColors.signal, borderRadius: BorderRadius.circular(5)),
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
           Directionality(
             textDirection: TextDirection.ltr,
             child: Text(_grouped,
-                style: const TextStyle(color: Colors.white, fontSize: 20, letterSpacing: 2, fontWeight: FontWeight.w600)),
+                style: const TextStyle(color: Colors.white, fontSize: 19, letterSpacing: 2, fontWeight: FontWeight.w600)),
           ),
-          const SizedBox(height: 16),
-          Text(holder.isEmpty ? '—' : holder, style: const TextStyle(color: Color(0xFFD6E8FF), fontSize: 13)),
+          const SizedBox(height: 14),
+          Text(holder.isEmpty ? '—' : holder, style: const TextStyle(color: AppColors.aqua2, fontSize: 13)),
         ],
       ),
     );
   }
 }
 
-/// Pill-style tabs with a blue-tinted background.
+/// Tabs as an underline: the active tab has a tide bar under it.
 class PillTabs extends StatelessWidget {
   final List<String> labels;
   final int selected;
@@ -167,11 +146,8 @@ class PillTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [AppColors.foam, AppColors.aqua]),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.aqua2),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.aqua2)),
       ),
       child: Row(
         children: List.generate(labels.length, (i) {
@@ -179,20 +155,21 @@ class PillTabs extends StatelessWidget {
           return Expanded(
             child: GestureDetector(
               onTap: () => onChanged(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(vertical: 9),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  gradient: on ? const LinearGradient(colors: [AppColors.blue2, AppColors.deep]) : null,
-                  borderRadius: BorderRadius.circular(12),
+                  border: Border(
+                    bottom: BorderSide(color: on ? AppColors.blue : Colors.transparent, width: 2.5),
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   labels[i],
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: on ? Colors.white : AppColors.deep,
+                    fontWeight: on ? FontWeight.w800 : FontWeight.w500,
+                    color: on ? AppColors.ink : AppColors.muted,
                   ),
                 ),
               ),
@@ -202,4 +179,84 @@ class PillTabs extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Signature element: a meter arc with the tariff tiers (1x, 2x, 3x of the limit) and a needle.
+class MeterGauge extends StatelessWidget {
+  final num consumption;
+  final num limit;
+  const MeterGauge({super.key, required this.consumption, required this.limit});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 240,
+      height: 140,
+      child: CustomPaint(
+        painter: _GaugePainter(value: consumption.toDouble(), limit: limit.toDouble()),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  fmtNum(consumption),
+                  style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: AppColors.ink),
+                ),
+                const Text('متر مکعب', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GaugePainter extends CustomPainter {
+  final double value;
+  final double limit;
+  const _GaugePainter({required this.value, required this.limit});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height - 6);
+    final radius = size.width / 2 - 12;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    const stroke = 12.0;
+    final maxV = limit <= 0 ? 1.0 : limit * 3;
+
+    double frac(double v) => (v / maxV).clamp(0.0, 1.0).toDouble();
+
+    void arc(double from, double to, Color color) {
+      final p = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke;
+      canvas.drawArc(rect, 3.14159 + from * 3.14159, (to - from) * 3.14159, false, p);
+    }
+
+    final l1 = frac(limit);
+    final l2 = frac(limit * 2);
+    arc(0, l1, AppColors.blue);
+    arc(l1, l2, AppColors.signal);
+    arc(l2, 1, AppColors.red.withValues(alpha: 0.55));
+
+    final a = 3.14159 + frac(value) * 3.14159;
+    final tip = center + Offset(math.cos(a), math.sin(a)) * (radius - 6);
+    canvas.drawLine(
+      center,
+      tip,
+      Paint()
+        ..color = AppColors.ink
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(center, 6, Paint()..color = AppColors.ink);
+  }
+
+  @override
+  bool shouldRepaint(covariant _GaugePainter old) => old.value != value || old.limit != limit;
 }

@@ -11,7 +11,7 @@ import '../login_screen.dart';
 import 'bill_pdf.dart';
 import 'resident_messages_tab.dart';
 
-/// Resident panel: current bill, card-to-card payment, past bills and messages.
+/// Resident panel: the debt first, then the current bill with its meter, payment and history.
 class ResidentHome extends StatefulWidget {
   const ResidentHome({super.key});
 
@@ -23,6 +23,8 @@ class _ResidentHomeState extends State<ResidentHome> {
   int _index = 0;
   List<BillRow> _bills = [];
   Map<String, dynamic>? _bank;
+  num _consumption = 0;
+  num? _limit;
   bool _loading = true;
   String? _error;
 
@@ -46,14 +48,19 @@ class _ResidentHomeState extends State<ResidentHome> {
     try {
       final rows = await rpc('get_unit_history', _params) as List;
       final bank = await rpc('get_building_bank_info', _params);
+      final cur = await rpc('get_unit_bill', _params) as List;
+      final det = await rpc('get_tariff_details', _params);
+      final d = det is Map ? det['details'] as Map<String, dynamic>? : null;
       setState(() {
         _bills = rows.map((r) => BillRow.fromJson(r as Map<String, dynamic>)).toList();
         _bank = bank is Map<String, dynamic> ? bank : null;
+        _consumption = cur.isEmpty ? 0 : ((cur.first as Map)['consumption'] ?? 0) as num;
+        _limit = d == null ? null : (d['L'] as num?);
       });
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'اطلاعات دریافت نشد؛ اینترنت را بررسی کنید');
+      setState(() => _error = 'اطلاعات دریافت نشد. اینترنت را بررسی کنید.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -88,199 +95,225 @@ class _ResidentHomeState extends State<ResidentHome> {
     _snack(done);
   }
 
-  Widget _billsView() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) return EmptyState(text: _error!);
-    final unpaidCount = _bills.where((b) => !b.isPaid).length;
-    final current = _bills.isEmpty ? null : _bills.first;
-    final cardNumber = (_bank?['card_number'] ?? '').toString();
-    final debtNumber = _debt.round();
+  Widget _divider() => const Divider(height: 1, thickness: 1, color: AppColors.aqua2);
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.blue2, AppColors.deep]),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('مجموع بدهی', style: TextStyle(color: Colors.white70)),
-                const SizedBox(height: 6),
-                Text(fmtMoney(_debt),
-                    style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(
-                  unpaidCount == 0 ? 'همه قبض‌ها پرداخت شده است' : '${fmtNum(unpaidCount)} قبض پرداخت نشده',
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (current == null)
-            const EmptyState(text: 'هنوز قبضی برای این واحد منتشر نشده است')
-          else ...[
-            const Text('قبض این دوره', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 8),
-            _billCard(current, highlight: true),
-          ],
-          const SizedBox(height: 18),
-          if (_debt > 0 && cardNumber.isNotEmpty) ...[
-            const Text('پرداخت کارت به کارت', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 8),
-            _transferCard(cardNumber, debtNumber),
-            const SizedBox(height: 18),
-          ],
-          if (_bank != null && cardNumber.isNotEmpty) ...[
-            const Text('کارت مدیر', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 8),
-            BankCardView(
-              bankName: (_bank!['bank_name'] ?? '').toString(),
-              holder: (_bank!['holder_name'] ?? '').toString(),
-              cardNumber: cardNumber,
-            ),
-            const SizedBox(height: 18),
-          ],
-          if (_bills.length > 1) ...[
-            const Text('قبض‌های قبلی', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 8),
-            ..._bills.skip(1).map((b) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _billCard(b),
-                )),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _transferCard(String cardNumber, int debt) {
-    final grouped = RegExp(r'.{1,4}')
-        .allMatches(cardNumber.replaceAll(RegExp(r'\D'), ''))
-        .map((m) => m.group(0))
-        .join(' ');
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('کارت مقصد (کارت مدیر)', style: TextStyle(fontSize: 12, color: AppColors.muted)),
-          const SizedBox(height: 4),
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Text(grouped,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1.5, color: AppColors.deep)),
-          ),
-          const SizedBox(height: 12),
-          const Text('مبلغ پرداخت (کل بدهی)', style: TextStyle(fontSize: 12, color: AppColors.muted)),
-          const SizedBox(height: 4),
-          Text(fmtMoney(debt), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.blue)),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _copy(cardNumber.replaceAll(RegExp(r'\D'), ''), 'شماره کارت کپی شد'),
-                  icon: const Icon(Icons.copy, size: 16),
-                  label: const Text('کپی کارت'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _copy(debt.toString(), 'مبلغ کپی شد'),
-                  icon: const Icon(Icons.copy, size: 16),
-                  label: const Text('کپی مبلغ'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _billCard(BillRow b, {bool highlight = false}) {
-    final color = b.isPaid ? AppColors.green : AppColors.red;
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 4))],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Container(width: 5, color: color),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(b.periodTitle,
-                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: highlight ? 17 : 15)),
-                        ),
-                        StatusChip(paid: b.isPaid),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _mini('مبلغ قبض', fmtMoney(b.amountDue)),
-                        _mini('مانده', fmtMoney(b.balance)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    _line('پرداختی', fmtMoney(b.paidAmount)),
-                    _line('مهلت پرداخت', fmtJalali(b.dueDate)),
-                    if (b.verificationCode != null) _line('کد تأیید', b.verificationCode!),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _mini(String label, String value) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.only(left: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(color: AppColors.blueLight, borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-            const SizedBox(height: 2),
-            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.blue)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _line(String label, String value) {
+  Widget _row(String label, String value, {bool strong = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
           Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
           const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: strong ? 15 : 13,
+              fontWeight: strong ? FontWeight.w800 : FontWeight.w600,
+              color: AppColors.ink,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _hero() {
+    final unpaid = _bills.where((b) => !b.isPaid).length;
+    final clear = unpaid == 0;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(clear ? 'بدهی ندارید' : 'مانده بدهی',
+              style: const TextStyle(color: AppColors.muted, fontSize: 14)),
+          const SizedBox(height: 4),
+          Text(
+            fmtMoney(_debt),
+            style: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              height: 1.1,
+              color: clear ? AppColors.green : AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            clear ? 'همه قبض‌ها پرداخت شده است.' : '${fmtNum(unpaid)} قبض پرداخت نشده است.',
+            style: const TextStyle(color: AppColors.muted, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _currentBill(BillRow b) {
+    final limit = _limit;
+    return AppCard(
+      radius: 16,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(b.periodTitle, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              ),
+              StatusChip(paid: b.isPaid),
+            ],
+          ),
+          if (limit != null && limit > 0) ...[
+            const SizedBox(height: 12),
+            Center(child: MeterGauge(consumption: _consumption, limit: limit)),
+            Center(
+              child: Text(
+                'حد مجاز این دوره ${fmtNum(limit)} متر مکعب است.',
+                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
+          _divider(),
+          _row('مبلغ قبض', fmtMoney(b.amountDue)),
+          _divider(),
+          _row('پرداختی', fmtMoney(b.paidAmount)),
+          _divider(),
+          _row('مانده', fmtMoney(b.balance), strong: true),
+          _divider(),
+          _row('مهلت پرداخت', fmtJalali(b.dueDate)),
+          if (b.verificationCode != null) ...[
+            _divider(),
+            _row('کد تأیید', b.verificationCode!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _transfer(String cardNumber, int debt) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        BankCardView(
+          bankName: (_bank?['bank_name'] ?? '').toString(),
+          holder: (_bank?['holder_name'] ?? '').toString(),
+          cardNumber: cardNumber,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Text(fmtMoney(debt),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.ink)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _copy(cardNumber.replaceAll(RegExp(r'\D'), ''), 'شماره کارت کپی شد'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.ink,
+                  side: const BorderSide(color: AppColors.blue2),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('کپی شماره کارت'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton(
+                onPressed: () => _copy(debt.toString(), 'مبلغ کپی شد'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.blue,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('کپی مبلغ'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _history() {
+    final older = _bills.skip(1).toList();
+    if (older.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 22, bottom: 6),
+          child: Text('قبض‌های قبلی', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        ),
+        ...older.map((b) => Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(b.periodTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 2),
+                            Text('مهلت ${fmtJalali(b.dueDate)}',
+                                style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(fmtMoney(b.amountDue), style: const TextStyle(fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 2),
+                          Text(b.isPaid ? 'پرداخت شده' : 'پرداخت نشده',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: b.isPaid ? AppColors.green : AppColors.red,
+                                  fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                _divider(),
+              ],
+            )),
+      ],
+    );
+  }
+
+  Widget _billsView() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) return EmptyState(text: _error!);
+    final current = _bills.isEmpty ? null : _bills.first;
+    final cardNumber = (_bank?['card_number'] ?? '').toString();
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        children: [
+          _hero(),
+          const SizedBox(height: 18),
+          if (current == null)
+            const EmptyState(text: 'هنوز قبضی برای این واحد منتشر نشده است.')
+          else
+            _currentBill(current),
+          if (_debt > 0 && cardNumber.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.only(top: 22, bottom: 10),
+              child: Text('پرداخت با کارت', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            ),
+            _transfer(cardNumber, _debt.round()),
+          ],
+          _history(),
         ],
       ),
     );
@@ -307,7 +340,7 @@ class _ResidentHomeState extends State<ResidentHome> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'قبض من'),
+          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'قبض'),
           NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'پیام‌ها'),
         ],
       ),
