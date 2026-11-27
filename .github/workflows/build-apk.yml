@@ -88,4 +88,3 @@ jobs:
         with:
           name: aban-as-apk
           path: build/app/outputs/flutter-apk/*.apk
-
