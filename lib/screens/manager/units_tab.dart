@@ -130,6 +130,8 @@ class _UnitsTabState extends State<UnitsTab> {
           children: [
             _referralCard(),
             const SizedBox(height: 14),
+            _unitStrip(),
+            const SizedBox(height: 14),
             TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
@@ -154,6 +156,56 @@ class _UnitsTabState extends State<UnitsTab> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Horizontal strip of units: five visible at a time, scrollable.
+  Widget _unitStrip() {
+    if (_units.isEmpty) return const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, c) {
+        const gap = 8.0;
+        final w = (c.maxWidth - gap * 4) / 5;
+        return SizedBox(
+          height: 96,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _units.length,
+            separatorBuilder: (_, __) => const SizedBox(width: gap),
+            itemBuilder: (_, i) {
+              final u = _units[i];
+              return SizedBox(
+                width: w,
+                child: GestureDetector(
+                  onTap: () => _openHistory(u),
+                  child: AppCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppColors.blueLight,
+                          foregroundColor: AppColors.blue,
+                          child: Text(u.label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          u.residentName.isEmpty ? '—' : u.residentName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 10, color: AppColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

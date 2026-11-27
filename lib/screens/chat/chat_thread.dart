@@ -180,7 +180,7 @@ class _ChatThreadState extends State<ChatThread> {
               margin: const EdgeInsets.symmetric(vertical: 2),
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
               decoration: BoxDecoration(
-                color: m.mine ? AppColors.blue : Colors.white,
+                color: m.mine ? AppColors.blue : AppColors.aqua,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 6, offset: Offset(0, 2))],
               ),

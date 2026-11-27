@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../api.dart';
 import '../../format.dart';
@@ -10,7 +11,7 @@ import '../login_screen.dart';
 import 'bill_pdf.dart';
 import 'resident_messages_tab.dart';
 
-/// Resident panel: current bill, all bills with total debt, bank card and messages.
+/// Resident panel: current bill, card-to-card payment, past bills and messages.
 class ResidentHome extends StatefulWidget {
   const ResidentHome({super.key});
 
@@ -58,13 +59,17 @@ class _ResidentHomeState extends State<ResidentHome> {
     }
   }
 
+  void _snack(String t) {
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  }
+
   Future<void> _pdf() async {
     try {
       await printResidentBill();
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      _snack(e.message);
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ساخت PDF انجام نشد')));
+      _snack('ساخت PDF انجام نشد');
     }
   }
 
@@ -76,12 +81,20 @@ class _ResidentHomeState extends State<ResidentHome> {
     );
   }
 
+  num get _debt => _bills.where((b) => !b.isPaid).fold<num>(0, (s, b) => s + b.balance);
+
+  Future<void> _copy(String text, String done) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    _snack(done);
+  }
+
   Widget _billsView() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return EmptyState(text: _error!);
-    final debt = _bills.where((b) => !b.isPaid).fold<num>(0, (s, b) => s + b.balance);
     final unpaidCount = _bills.where((b) => !b.isPaid).length;
     final current = _bills.isEmpty ? null : _bills.first;
+    final cardNumber = (_bank?['card_number'] ?? '').toString();
+    final debtNumber = _debt.round();
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -91,7 +104,7 @@ class _ResidentHomeState extends State<ResidentHome> {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.blue, AppColors.navy]),
+              gradient: const LinearGradient(colors: [AppColors.blue2, AppColors.deep]),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
@@ -99,7 +112,7 @@ class _ResidentHomeState extends State<ResidentHome> {
               children: [
                 const Text('مجموع بدهی', style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
-                Text(fmtMoney(debt),
+                Text(fmtMoney(_debt),
                     style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
                 Text(
@@ -113,30 +126,80 @@ class _ResidentHomeState extends State<ResidentHome> {
           if (current == null)
             const EmptyState(text: 'هنوز قبضی برای این واحد منتشر نشده است')
           else ...[
-            const Text('قبض این دوره', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            const Text('قبض این دوره', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 8),
             _billCard(current, highlight: true),
           ],
-          const SizedBox(height: 16),
-          if (_bank != null &&
-              ((_bank!['card_number'] ?? '').toString().isNotEmpty)) ...[
-            const Text('پرداخت به کارت', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          const SizedBox(height: 18),
+          if (_debt > 0 && cardNumber.isNotEmpty) ...[
+            const Text('پرداخت کارت به کارت', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 8),
+            _transferCard(cardNumber, debtNumber),
+            const SizedBox(height: 18),
+          ],
+          if (_bank != null && cardNumber.isNotEmpty) ...[
+            const Text('کارت مدیر', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 8),
             BankCardView(
               bankName: (_bank!['bank_name'] ?? '').toString(),
               holder: (_bank!['holder_name'] ?? '').toString(),
-              cardNumber: (_bank!['card_number'] ?? '').toString(),
+              cardNumber: cardNumber,
             ),
             const SizedBox(height: 18),
           ],
           if (_bills.length > 1) ...[
-            const Text('قبض‌های قبلی', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            const Text('قبض‌های قبلی', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 8),
             ..._bills.skip(1).map((b) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _billCard(b),
                 )),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _transferCard(String cardNumber, int debt) {
+    final grouped = RegExp(r'.{1,4}')
+        .allMatches(cardNumber.replaceAll(RegExp(r'\D'), ''))
+        .map((m) => m.group(0))
+        .join(' ');
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('کارت مقصد (کارت مدیر)', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+          const SizedBox(height: 4),
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Text(grouped,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1.5, color: AppColors.deep)),
+          ),
+          const SizedBox(height: 12),
+          const Text('مبلغ پرداخت (کل بدهی)', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+          const SizedBox(height: 4),
+          Text(fmtMoney(debt), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.blue)),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _copy(cardNumber.replaceAll(RegExp(r'\D'), ''), 'شماره کارت کپی شد'),
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('کپی کارت'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _copy(debt.toString(), 'مبلغ کپی شد'),
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('کپی مبلغ'),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'theme.dart';
 
-/// White rounded card used across the app.
+/// Card with a soft aqua gradient and a water bubble in the corner (no plain white).
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -12,16 +12,40 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [AppColors.foam, AppColors.aqua],
+        ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.blueLight),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 6))],
+        border: Border.all(color: AppColors.aqua2),
+        boxShadow: const [BoxShadow(color: Color(0x1A1F6FD1), blurRadius: 14, offset: Offset(0, 6))],
       ),
-      child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          children: [
+            const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _CornerBubble()))),
+            Padding(padding: padding, child: child),
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _CornerBubble extends CustomPainter {
+  const _CornerBubble();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawCircle(Offset(size.width - 6, 6), 34, Paint()..color = const Color(0x1A3AA0F0));
+    canvas.drawCircle(Offset(size.width - 24, 26), 9, Paint()..color = const Color(0x2238BDF8));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class StatusChip extends StatelessWidget {
@@ -77,7 +101,7 @@ class ComingSoon extends StatelessWidget {
   }
 }
 
-/// Bank card design (same idea as the approved card): blue gradient, chip, number, holder.
+/// Bank card design: blue gradient, chip, number, holder.
 class BankCardView extends StatelessWidget {
   final String bankName;
   final String holder;
@@ -96,8 +120,11 @@ class BankCardView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [Color(0xFF1F6FD1), Color(0xFF0B3B7A)]),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1F6FD1), Color(0xFF0B3B7A)],
+        ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 14, offset: Offset(0, 8))],
       ),
@@ -123,15 +150,14 @@ class BankCardView extends StatelessWidget {
                 style: const TextStyle(color: Colors.white, fontSize: 20, letterSpacing: 2, fontWeight: FontWeight.w600)),
           ),
           const SizedBox(height: 16),
-          Text(holder.isEmpty ? '—' : holder,
-              style: const TextStyle(color: Color(0xFFD6E8FF), fontSize: 13)),
+          Text(holder.isEmpty ? '—' : holder, style: const TextStyle(color: Color(0xFFD6E8FF), fontSize: 13)),
         ],
       ),
     );
   }
 }
 
-/// Minimal pill-style tabs used across the app.
+/// Pill-style tabs with a blue-tinted background.
 class PillTabs extends StatelessWidget {
   final List<String> labels;
   final int selected;
@@ -143,9 +169,9 @@ class PillTabs extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: const LinearGradient(colors: [AppColors.foam, AppColors.aqua]),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x0F000000), blurRadius: 8, offset: Offset(0, 3))],
+        border: Border.all(color: AppColors.aqua2),
       ),
       child: Row(
         children: List.generate(labels.length, (i) {
@@ -157,7 +183,7 @@ class PillTabs extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 9),
                 decoration: BoxDecoration(
-                  color: on ? AppColors.blue : Colors.transparent,
+                  gradient: on ? const LinearGradient(colors: [AppColors.blue2, AppColors.deep]) : null,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
@@ -166,7 +192,7 @@ class PillTabs extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: on ? Colors.white : AppColors.muted,
+                    color: on ? Colors.white : AppColors.deep,
                   ),
                 ),
               ),
