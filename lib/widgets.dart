@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'format.dart';
 import 'theme.dart';
 
 /// Flat sheet: a mist surface with one hairline. No shadow, no gradient wash.
